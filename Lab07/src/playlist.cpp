@@ -24,90 +24,55 @@
 
 #include <stdexcept>
 
-CircularPlaylist::CircularPlaylist() : current_(nullptr), size_(0) {}
-
-bool CircularPlaylist::empty() const {
-    return size_ == 0;
-}
-
-int CircularPlaylist::size() const {
-    return size_;
-}
-
-void CircularPlaylist::addAfterCurrent(const std::string& title) {
-    Node* node = new Node{title, nullptr, nullptr};
-
-    if (empty()) {
-        node->prev = node;
-        node->next = node;
-        current_ = node;
-    } else {
-        Node* after = current_->next;
-        node->prev = current_;
-        node->next = after;
-        current_->next = node;
-        after->prev = node;
-    }
-
-    ++size_;
-}
-
-void CircularPlaylist::addBeforeCurrent(const std::string& title) {
-    Node* node = new Node{title, nullptr, nullptr};
-
-    if (empty()) {
-        node->prev = node;
-        node->next = node;
-        current_ = node;
-    } else {
-        Node* before = current_->prev;
-        node->prev = before;
-        node->next = current_;
-        before->next = node;
-        current_->prev = node;
-    }
-
-    ++size_;
-}
-
-bool CircularPlaylist::removeCurrent() {
+bool CircularPlaylist::contains(const std::string& title) const {
     if (empty()) {
         return false;
     }
 
-    Node* removed = current_;
+    Node* node = current_;
+    do {
+        if (node->data == title) {
+            return true;
+        }
+        node = node->next;
+    } while (node != current_);
 
-    if (size_ == 1) {
-        current_ = nullptr;
-    } else {
-        current_ = removed->next;
-        removed->prev->next = removed->next;
-        removed->next->prev = removed->prev;
-    }
-
-    delete removed;
-    --size_;
-    return true;
+    return false;
 }
 
-bool CircularPlaylist::next() {
-    if (empty()) {
-        return false;
+std::vector<std::string> CircularPlaylist::snapshotForward(int count) const {
+    std::vector<std::string> result;
+
+    if (empty() || count <= 0) {
+        return result;
     }
 
-    current_ = current_->next;
-    return true;
-}
+    result.reserve(static_cast<std::size_t>(count));
 
-bool CircularPlaylist::prev() {
-    if (empty()) {
-        return false;
+    Node* node = current_;
+    for (int i = 0; i < count; ++i) {
+        result.push_back(node->data);
+        node = node->next;
     }
 
-    current_ = current_->prev;
-    return true;
+    return result;
 }
 
-std::string CircularPlaylist::current() const {
-    return empty() ? "" : current_->data;
+void CircularPlaylist::clear() {
+    Node* node = current_;
+    int remaining = size_;
+
+    while (remaining > 0) {
+        Node* nextNode = node->next;
+        delete node;
+        node = nextNode;
+        --remaining;
+    }
+
+    current_ = nullptr;
+    size_ = 0;
+}
+
+CircularPlaylist::~CircularPlaylist() {
+    clear();
 }
