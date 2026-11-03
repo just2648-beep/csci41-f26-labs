@@ -24,78 +24,90 @@
 
 #include <stdexcept>
 
-CircularPlaylist::CircularPlaylist() : current_(nullptr), size_(0) {
-    // TODO: an empty playlist. This one may already be correct -- read the
-    // header and decide.
-}
-
-CircularPlaylist::CircularPlaylist(const CircularPlaylist& other)
-    : current_(nullptr), size_(0) {
-    (void)other;
-    throw std::logic_error("not implemented: copy constructor");
-}
-
-CircularPlaylist& CircularPlaylist::operator=(const CircularPlaylist& other) {
-    (void)other;
-    throw std::logic_error("not implemented: operator=");
-}
-
-CircularPlaylist::~CircularPlaylist() {
-    // TODO: give every node back. Remember to cut the ring open first, or
-    // you will come back round to a node you already deleted.
-    //
-    // Calling clear() here is reasonable -- but only once clear() works.
-}
+CircularPlaylist::CircularPlaylist() : current_(nullptr), size_(0) {}
 
 bool CircularPlaylist::empty() const {
-    throw std::logic_error("not implemented: empty");
+    return size_ == 0;
 }
 
 int CircularPlaylist::size() const {
-    throw std::logic_error("not implemented: size");
+    return size_;
 }
 
 void CircularPlaylist::addAfterCurrent(const std::string& title) {
-    (void)title;
-    throw std::logic_error("not implemented: addAfterCurrent");
+    Node* node = new Node{title, nullptr, nullptr};
+
+    if (empty()) {
+        node->prev = node;
+        node->next = node;
+        current_ = node;
+    } else {
+        Node* after = current_->next;
+        node->prev = current_;
+        node->next = after;
+        current_->next = node;
+        after->prev = node;
+    }
+
+    ++size_;
 }
 
 void CircularPlaylist::addBeforeCurrent(const std::string& title) {
-    (void)title;
-    throw std::logic_error("not implemented: addBeforeCurrent");
+    Node* node = new Node{title, nullptr, nullptr};
+
+    if (empty()) {
+        node->prev = node;
+        node->next = node;
+        current_ = node;
+    } else {
+        Node* before = current_->prev;
+        node->prev = before;
+        node->next = current_;
+        before->next = node;
+        current_->prev = node;
+    }
+
+    ++size_;
 }
 
 bool CircularPlaylist::removeCurrent() {
-    throw std::logic_error("not implemented: removeCurrent");
+    if (empty()) {
+        return false;
+    }
+
+    Node* removed = current_;
+
+    if (size_ == 1) {
+        current_ = nullptr;
+    } else {
+        current_ = removed->next;
+        removed->prev->next = removed->next;
+        removed->next->prev = removed->prev;
+    }
+
+    delete removed;
+    --size_;
+    return true;
 }
 
 bool CircularPlaylist::next() {
-    throw std::logic_error("not implemented: next");
+    if (empty()) {
+        return false;
+    }
+
+    current_ = current_->next;
+    return true;
 }
 
 bool CircularPlaylist::prev() {
-    throw std::logic_error("not implemented: prev");
+    if (empty()) {
+        return false;
+    }
+
+    current_ = current_->prev;
+    return true;
 }
 
 std::string CircularPlaylist::current() const {
-    throw std::logic_error("not implemented: current");
-}
-
-bool CircularPlaylist::contains(const std::string& title) const {
-    (void)title;
-    throw std::logic_error("not implemented: contains");
-}
-
-std::vector<std::string> CircularPlaylist::snapshotForward(int count) const {
-    (void)count;
-    throw std::logic_error("not implemented: snapshotForward");
-}
-
-void CircularPlaylist::clear() {
-    throw std::logic_error("not implemented: clear");
-}
-
-void CircularPlaylist::copyFrom(const CircularPlaylist& other) {
-    (void)other;
-    throw std::logic_error("not implemented: copyFrom");
+    return empty() ? "" : current_->data;
 }
