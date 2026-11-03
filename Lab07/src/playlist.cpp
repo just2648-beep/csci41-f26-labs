@@ -24,6 +24,128 @@
 
 #include <stdexcept>
 
+#include "playlist.h"
+
+CircularPlaylist::CircularPlaylist()
+    : current_(nullptr), size_(0) {}
+
+CircularPlaylist::CircularPlaylist(const CircularPlaylist& other)
+    : current_(nullptr), size_(0) {
+    copyFrom(other);
+}
+
+CircularPlaylist& CircularPlaylist::operator=(const CircularPlaylist& other) {
+    if (this != &other) {
+        // Build the copy first so an allocation failure leaves this playlist unchanged.
+        CircularPlaylist copy(other);
+
+        clear();
+        current_ = copy.current_;
+        size_ = copy.size_;
+
+        copy.current_ = nullptr;
+        copy.size_ = 0;
+    }
+
+    return *this;
+}
+
+CircularPlaylist::~CircularPlaylist() {
+    clear();
+}
+
+bool CircularPlaylist::empty() const {
+    return size_ == 0;
+}
+
+int CircularPlaylist::size() const {
+    return size_;
+}
+
+void CircularPlaylist::addAfterCurrent(const std::string& title) {
+    Node* node = new Node{title, nullptr, nullptr};
+
+    if (empty()) {
+        node->prev = node;
+        node->next = node;
+        current_ = node;
+    } else {
+        Node* after = current_->next;
+
+        node->prev = current_;
+        node->next = after;
+        current_->next = node;
+        after->prev = node;
+    }
+
+    ++size_;
+}
+
+void CircularPlaylist::addBeforeCurrent(const std::string& title) {
+    Node* node = new Node{title, nullptr, nullptr};
+
+    if (empty()) {
+        node->prev = node;
+        node->next = node;
+        current_ = node;
+    } else {
+        Node* before = current_->prev;
+
+        node->prev = before;
+        node->next = current_;
+        before->next = node;
+        current_->prev = node;
+    }
+
+    ++size_;
+}
+
+bool CircularPlaylist::removeCurrent() {
+    if (empty()) {
+        return false;
+    }
+
+    Node* removed = current_;
+
+    if (size_ == 1) {
+        current_ = nullptr;
+    } else {
+        current_ = removed->next;
+        removed->prev->next = removed->next;
+        removed->next->prev = removed->prev;
+    }
+
+    delete removed;
+    --size_;
+    return true;
+}
+
+bool CircularPlaylist::next() {
+    if (empty()) {
+        return false;
+    }
+
+    current_ = current_->next;
+    return true;
+}
+
+bool CircularPlaylist::prev() {
+    if (empty()) {
+        return false;
+    }
+
+    current_ = current_->prev;
+    return true;
+}
+
+std::string CircularPlaylist::current() const {
+    if (empty()) {
+        return "";
+    }
+
+    return current_->data;
+}
+
 bool CircularPlaylist::contains(const std::string& title) const {
     if (empty()) {
         return false;
@@ -34,6 +156,7 @@ bool CircularPlaylist::contains(const std::string& title) const {
         if (node->data == title) {
             return true;
         }
+
         node = node->next;
     } while (node != current_);
 
@@ -47,9 +170,8 @@ std::vector<std::string> CircularPlaylist::snapshotForward(int count) const {
         return result;
     }
 
-    result.reserve(static_cast<std::size_t>(count));
-
     Node* node = current_;
+
     for (int i = 0; i < count; ++i) {
         result.push_back(node->data);
         node = node->next;
@@ -73,6 +195,35 @@ void CircularPlaylist::clear() {
     size_ = 0;
 }
 
-CircularPlaylist::~CircularPlaylist() {
-    clear();
+void CircularPlaylist::copyFrom(const CircularPlaylist& other) {
+    if (other.empty()) {
+        return;
+    }
+
+    Node* source = other.current_;
+
+    try {
+        do {
+            Node* node = new Node{source->data, nullptr, nullptr};
+
+            if (empty()) {
+                node->prev = node;
+                node->next = node;
+                current_ = node;
+            } else {
+                Node* tail = current_->prev;
+
+                node->prev = tail;
+                node->next = current_;
+                tail->next = node;
+                current_->prev = node;
+            }
+
+            ++size_;
+            source = source->next;
+        } while (source != other.current_);
+    } catch (...) {
+        clear();
+        throw;
+    }
 }
