@@ -37,98 +37,248 @@
 // That is how it is graded.
 #include "wordcount.h"
 
-#include <stdexcept>
-
 WordCount::WordCount()
-    : slots_(nullptr), capacity_(0), size_(0), tombstones_(0) {
-    throw std::logic_error("not implemented: WordCount()");
-}
+    : slots_(new Slot[1]), capacity_(1), size_(0), tombstones_(0) {}
 
 WordCount::WordCount(int initialCapacity)
-    : slots_(nullptr), capacity_(0), size_(0), tombstones_(0) {
-    (void)initialCapacity;
-    throw std::logic_error("not implemented: WordCount(int)");
-}
+    : slots_(new Slot[initialCapacity < 1 ? 1 : initialCapacity]),
+      capacity_(initialCapacity < 1 ? 1 : initialCapacity),
+      size_(0),
+      tombstones_(0) {}
 
 WordCount::WordCount(const WordCount& other)
-    : slots_(nullptr), capacity_(0), size_(0), tombstones_(0) {
-    (void)other;
-    throw std::logic_error("not implemented: copy constructor");
+    : slots_(new Slot[other.capacity_]),
+      capacity_(other.capacity_),
+      size_(other.size_),
+      tombstones_(other.tombstones_) {
+    for (int i = 0; i < capacity_; ++i) {
+        slots_[i] = other.slots_[i];
+    }
 }
 
 WordCount& WordCount::operator=(const WordCount& other) {
-    (void)other;
-    throw std::logic_error("not implemented: operator=");
+    if (this == &other) {
+        return *this;
+    }
+
+    Slot* replacement = new Slot[other.capacity_];
+
+    for (int i = 0; i < other.capacity_; ++i) {
+        replacement[i] = other.slots_[i];
+    }
+
+    delete[] slots_;
+
+    slots_ = replacement;
+    capacity_ = other.capacity_;
+    size_ = other.size_;
+    tombstones_ = other.tombstones_;
+
+    return *this;
 }
 
 WordCount::~WordCount() {
-    // TODO: give the slot array back.
+    delete[] slots_;
 }
 
 bool WordCount::empty() const {
-    throw std::logic_error("not implemented: empty");
+    return size_ == 0;
 }
 
 int WordCount::size() const {
-    throw std::logic_error("not implemented: size");
+    return size_;
 }
 
 int WordCount::capacity() const {
-    throw std::logic_error("not implemented: capacity");
+    return capacity_;
 }
 
 int WordCount::tombstones() const {
-    throw std::logic_error("not implemented: tombstones");
+    return tombstones_;
 }
 
 double WordCount::loadFactor() const {
-    throw std::logic_error("not implemented: loadFactor");
+    return static_cast<double>(size_ + tombstones_) / capacity_;
 }
 
 int WordCount::hashOf(const std::string& word) const {
-    (void)word;
-    throw std::logic_error("not implemented: hashOf");
+    unsigned long long hash = 0;
+
+    for (unsigned char ch : word) {
+        hash = hash * 31ULL + ch + 1ULL;
+    }
+
+    return static_cast<int>(
+        hash % static_cast<unsigned long long>(capacity_)
+    );
 }
 
 int WordCount::findSlot(const std::string& word) const {
-    (void)word;
-    throw std::logic_error("not implemented: findSlot");
+    const int home = hashOf(word);
+
+    for (int step = 0; step < capacity_; ++step) {
+        const int index = (home + step) % capacity_;
+        const Slot& slot = slots_[index];
+
+        if (slot.state == EMPTY) {
+            return -1;
+        }
+
+        if (slot.state == OCCUPIED && slot.word == word) {
+            return index;
+        }
+    }
+
+    return -1;
 }
 
 bool WordCount::contains(const std::string& word) const {
-    (void)word;
-    throw std::logic_error("not implemented: contains");
+    return findSlot(word) != -1;
 }
 
 int WordCount::get(const std::string& word) const {
-    (void)word;
-    throw std::logic_error("not implemented: get");
+    const int index = findSlot(word);
+    return index == -1 ? 0 : slots_[index].count;
 }
 
 void WordCount::put(const std::string& word, int count) {
-    (void)word; (void)count;
-    throw std::logic_error("not implemented: put");
+    if (loadFactor() > 0.5) {
+        rehash(2 * capacity_ + 1);
+    }
+
+    const int home = hashOf(word);
+    int firstTombstone = -1;
+
+    for (int step = 0; step < capacity_; ++step) {
+        const int index = (home + step) % capacity_;
+        Slot& slot = slots_[index];
+
+        if (slot.state == OCCUPIED) {
+            if (slot.word == word) {
+                slot.count = count;
+                return;
+            }
+        } else if (slot.state == TOMBSTONE) {
+            if (firstTombstone == -1) {
+                firstTombstone = index;
+            }
+        } else {
+            const int target =
+                firstTombstone == -1 ? index : firstTombstone;
+
+            Slot& destination = slots_[target];
+
+            if (destination.state == TOMBSTONE) {
+                --tombstones_;
+            }
+
+            destination.state = OCCUPIED;
+            destination.word = word;
+            destination.count = count;
+            ++size_;
+
+            return;
+        }
+    }
+
+    if (firstTombstone != -1) {
+        Slot& destination = slots_[firstTombstone];
+
+        destination.state = OCCUPIED;
+        destination.word = word;
+        destination.count = count;
+
+        --tombstones_;
+        ++size_;
+
+        return;
+    }
+
+    rehash(2 * capacity_ + 1);
+    put(word, count);
 }
 
 void WordCount::increment(const std::string& word) {
-    (void)word;
-    throw std::logic_error("not implemented: increment");
+    const int index = findSlot(word);
+
+    if (index == -1) {
+        put(word, 1);
+    } else {
+        put(word, slots_[index].count + 1);
+    }
 }
 
 bool WordCount::erase(const std::string& word) {
-    (void)word;
-    throw std::logic_error("not implemented: erase");
+    const int index = findSlot(word);
+
+    if (index == -1) {
+        return false;
+    }
+
+    slots_[index].state = TOMBSTONE;
+    slots_[index].word.clear();
+    slots_[index].count = 0;
+
+    --size_;
+    ++tombstones_;
+
+    return true;
 }
 
 void WordCount::clear() {
-    throw std::logic_error("not implemented: clear");
+    for (int i = 0; i < capacity_; ++i) {
+        slots_[i] = Slot();
+    }
+
+    size_ = 0;
+    tombstones_ = 0;
 }
 
 std::vector<std::string> WordCount::keys() const {
-    throw std::logic_error("not implemented: keys");
+    std::vector<std::string> result;
+    result.reserve(size_);
+
+    for (int i = 0; i < capacity_; ++i) {
+        if (slots_[i].state == OCCUPIED) {
+            result.push_back(slots_[i].word);
+        }
+    }
+
+    return result;
 }
 
 void WordCount::rehash(int newCapacity) {
-    (void)newCapacity;
-    throw std::logic_error("not implemented: rehash");
+    if (newCapacity < 1) {
+        newCapacity = 1;
+    }
+
+    Slot* oldSlots = slots_;
+    const int oldCapacity = capacity_;
+
+    slots_ = new Slot[newCapacity];
+    capacity_ = newCapacity;
+    size_ = 0;
+    tombstones_ = 0;
+
+    for (int i = 0; i < oldCapacity; ++i) {
+        if (oldSlots[i].state != OCCUPIED) {
+            continue;
+        }
+
+        const int home = hashOf(oldSlots[i].word);
+
+        for (int step = 0; step < capacity_; ++step) {
+            const int index = (home + step) % capacity_;
+
+            if (slots_[index].state == EMPTY) {
+                slots_[index].state = OCCUPIED;
+                slots_[index].word = oldSlots[i].word;
+                slots_[index].count = oldSlots[i].count;
+                ++size_;
+                break;
+            }
+        }
+    }
+
+    delete[] oldSlots;
 }

@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/lab09_tests.dir/tests/test_lab09.cpp.o CMakeFiles/lab09_tests.dir/src/wordcount.cpp.o -o lab09_tests
