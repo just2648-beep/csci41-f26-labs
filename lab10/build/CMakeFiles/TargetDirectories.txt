@@ -1,0 +1,6 @@
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/avl_repair_lib.dir
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/lab10.dir
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/lab10_tests.dir
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/test.dir
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/edit_cache.dir
+/Users/justinmolina/CLionProjects/csci41-f26-labs/lab10/build/CMakeFiles/rebuild_cache.dir

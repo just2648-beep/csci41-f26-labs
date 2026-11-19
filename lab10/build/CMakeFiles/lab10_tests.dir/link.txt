@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/lab10_tests.dir/tests/public_tests.cpp.o -o lab10_tests  libavl_repair_lib.a

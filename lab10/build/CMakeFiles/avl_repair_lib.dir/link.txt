@@ -1,0 +1,2 @@
+/usr/bin/ar qc libavl_repair_lib.a CMakeFiles/avl_repair_lib.dir/AVLRepairInt.cpp.o
+/usr/bin/ranlib libavl_repair_lib.a
